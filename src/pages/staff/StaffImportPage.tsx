@@ -1,6 +1,8 @@
 import { Upload } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { parseApiJson, prefetchCsrfToken } from '../../lib/api';
+import { getApiBase } from '../../lib/config';
 
 export function StaffImportPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -16,16 +18,12 @@ export function StaffImportPage() {
     setResult(null);
 
     try {
-      const csrfRes = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'}/csrf-token`, {
-        credentials: 'include',
-      });
-      const csrfJson = await csrfRes.json();
-      const csrfToken = csrfJson.data?.csrfToken as string;
+      const csrfToken = await prefetchCsrfToken();
 
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch(`${import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api'}/staff/students/import-csv`, {
+      const res = await fetch(`${getApiBase()}/staff/students/import-csv`, {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -35,9 +33,13 @@ export function StaffImportPage() {
         body: formData,
       });
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message ?? 'Import failed');
-      setResult(json.data);
+      const json = await parseApiJson<{
+        data?: { imported: number; skipped: number };
+        message?: string;
+        error?: string;
+      }>(res);
+      if (!res.ok) throw new Error(json.error ?? json.message ?? 'Import failed');
+      setResult(json.data ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed');
     } finally {

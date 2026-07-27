@@ -1,9 +1,6 @@
-# Super Admin — monorepo Netlify site
-# Base directory: apps/super-admin-portal
-# Or standalone: https://github.com/jathu1972-hub/avichian-super-admin
-
+﻿# Super Admin (standalone repo)
 [build]
-  command = "cd ../.. && npm ci && npm run build -w @avichian/shared && npm run build -w @avichian/super-admin-portal"
+  command = "npm ci && npm run build"
   publish = "dist"
 
 [build.environment]
