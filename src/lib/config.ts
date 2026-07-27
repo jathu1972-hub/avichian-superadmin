@@ -2,7 +2,7 @@
  * Super Admin frontend API configuration.
  *
  * Development: empty VITE_API_URL → relative `/api` via Vite proxy.
- * Production: VITE_API_URL=https://api.avichian.in (origin only; /api optional).
+ * Production: VITE_API_URL=https://api.avichian.com (origin only; /api optional).
  */
 
 function stripTrailingSlash(url: string): string {
