@@ -1,8 +1,6 @@
 /**
- * Super Admin frontend API configuration.
- *
- * Development: empty VITE_API_URL → relative `/api` via Vite proxy.
- * Production: VITE_API_URL=https://api.avichian.com (origin only; /api optional).
+ * Super Admin API configuration — same rules as student app.
+ * Runtime: public/config.json { "apiUrl": "https://your-api" }
  */
 
 function stripTrailingSlash(url: string): string {
@@ -17,36 +15,55 @@ export function normalizeApiOrigin(raw: string): string {
   return url;
 }
 
-export function getApiOrigin(): string {
-  const raw = import.meta.env.VITE_API_URL as string | undefined;
-  if (!raw || !raw.trim()) {
-    if (import.meta.env.PROD) {
-      console.error(
-        '[AVICHIAN] VITE_API_URL is not set in this production build. ' +
-          'Relative /api calls hit Netlify and return index.html (JSON parse fails). ' +
-          'Set VITE_API_URL=https://your-backend-host in Netlify env, then Redeploy.',
-      );
+let runtimeApiOrigin = '';
+let configLoaded = false;
+
+export async function loadRuntimeConfig(): Promise<void> {
+  if (configLoaded) return;
+  configLoaded = true;
+  try {
+    const base = import.meta.env.BASE_URL || '/';
+    const res = await fetch(`${base}config.json?v=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const json = (await res.json()) as { apiUrl?: string; VITE_API_URL?: string };
+    const raw = json.apiUrl || json.VITE_API_URL;
+    if (raw?.trim()) {
+      runtimeApiOrigin = normalizeApiOrigin(raw);
+      console.info('[AVICHIAN] API origin from config.json:', runtimeApiOrigin);
     }
-    return '';
+  } catch {
+    /* optional */
   }
-  const origin = normalizeApiOrigin(raw);
-  if (import.meta.env.PROD && /localhost|127\.0\.0\.1/.test(origin)) {
-    console.error(
-      '[AVICHIAN] VITE_API_URL points at localhost in a production build:',
-      origin,
-    );
+}
+
+function isHostedStaticFrontend(): boolean {
+  if (typeof window === 'undefined') return Boolean(import.meta.env.PROD);
+  const h = window.location.hostname;
+  return (
+    h.includes('github.io') ||
+    h.includes('netlify.app') ||
+    h.includes('vercel.app') ||
+    h.includes('pages.dev')
+  );
+}
+
+export function getApiOrigin(): string {
+  if (runtimeApiOrigin) return runtimeApiOrigin;
+  const raw = import.meta.env.VITE_API_URL as string | undefined;
+  if (raw?.trim()) return normalizeApiOrigin(raw);
+  if (import.meta.env.PROD || isHostedStaticFrontend()) {
+    console.error('[AVICHIAN] No API URL — set public/config.json { "apiUrl": "https://YOUR-API" }');
   }
-  return origin;
+  return '';
 }
 
 export function getApiBase(): string {
   const origin = getApiOrigin();
   if (origin) return `${origin}/api`;
-  if (import.meta.env.PROD) {
+  if (import.meta.env.PROD || isHostedStaticFrontend()) {
     throw new Error(
-      'VITE_API_URL is not configured in this production build. ' +
-        'Set the GitHub Actions variable (or Netlify env) VITE_API_URL to your Express backend origin, then redeploy. ' +
-        'Relative /api only works in local Vite dev.',
+      'API URL is not configured (relative /api returns HTML on static hosts). ' +
+        'Set config.json apiUrl or VITE_API_URL to your Express backend, then redeploy.',
     );
   }
   return '/api';
@@ -67,8 +84,6 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
     return url;
   }
   const origin = getApiOrigin();
-  if (url.startsWith('/') && origin) {
-    return `${origin}${url}`;
-  }
+  if (url.startsWith('/') && origin) return `${origin}${url}`;
   return url;
 }
