@@ -23,6 +23,7 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --sidebar-w: 16rem;
   --sidebar-collapsed: 4.5rem;
+  --space-page-x: clamp(0.75rem, 2.5vw, 1.5rem);
 }
 
 *,
@@ -33,24 +34,41 @@
 }
 
 html {
+  width: 100%;
+  height: 100%;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-}
-
-html,
-body,
-#root {
-  min-height: 100dvh;
-  max-width: 100vw;
-  overflow-x: hidden;
+  scroll-behavior: smooth;
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 body {
+  width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+  margin: 0;
+  padding: 0;
   font-family: var(--font-sans);
   background: var(--color-background);
   color: #0f172a;
-  margin: 0;
   line-height: 1.5;
+  overflow-x: clip;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  position: relative;
+}
+
+#root {
+  width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
+  overflow-x: clip;
+  overflow-y: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 img,
@@ -58,6 +76,14 @@ video {
   max-width: 100%;
   height: auto;
   display: block;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  touch-action: manipulation;
 }
 
 .glass-card {
@@ -92,6 +118,9 @@ video {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *,
   *::before,
   *::after {
@@ -101,14 +130,39 @@ video {
   }
 }
 
-/* Admin content width */
+.admin-shell {
+  width: 100%;
+  min-height: 100dvh;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
+  overflow: visible;
+}
+
 .admin-main {
   width: 100%;
   max-width: 90rem;
   margin-inline: auto;
+  flex: 1 0 auto;
+  overflow: visible;
+  /* Safe bottom space for mobile home indicator */
+  padding-bottom: max(1.25rem, calc(0.75rem + var(--safe-bottom)));
 }
 
-/* Responsive table wrapper */
+.pb-safe {
+  padding-bottom: max(0.75rem, var(--safe-bottom));
+}
+
+.pt-safe {
+  padding-top: max(0.5rem, var(--safe-top));
+}
+
+.px-safe {
+  padding-left: max(var(--space-page-x), var(--safe-left));
+  padding-right: max(var(--space-page-x), var(--safe-right));
+}
+
 .table-scroll {
   width: 100%;
   overflow-x: auto;
@@ -125,6 +179,12 @@ video {
 .break-anywhere {
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+
+.scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
 }
 
 .card-grid {
@@ -149,4 +209,11 @@ video {
   .card-grid-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
+}
+
+.modal-sheet {
+  width: min(100%, 28rem);
+  max-height: min(90dvh, 40rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }

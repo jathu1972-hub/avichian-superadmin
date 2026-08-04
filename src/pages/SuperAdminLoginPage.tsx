@@ -68,7 +68,7 @@ export function SuperAdminLoginPage() {
   }
 
   return (
-    <div className="relative min-h-dvh overflow-x-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-primary/40 px-4 py-8 sm:px-6 sm:py-10">
+    <div className="relative min-h-dvh bg-gradient-to-br from-slate-900 via-slate-800 to-primary/40 px-4 py-8 sm:px-6 sm:py-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.15),transparent_50%)]" />
 
       <motion.div

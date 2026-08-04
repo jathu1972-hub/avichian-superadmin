@@ -208,7 +208,7 @@ export function LoginPage() {
   ];
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-gradient-to-b from-secondary/20 via-background to-background px-4 py-10">
+    <div className="relative min-h-dvh bg-gradient-to-b from-secondary/20 via-background to-background px-4 py-10">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="mx-auto max-w-md space-y-8">
         <div className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary text-white shadow-float">

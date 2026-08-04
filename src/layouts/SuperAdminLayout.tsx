@@ -26,6 +26,7 @@ import {
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
@@ -67,6 +68,8 @@ export function SuperAdminLayout() {
     setMobileNav(false);
     setMobileSearch(false);
   }, [location.pathname]);
+
+  useBodyScrollLock(mobileNav);
 
   async function handleLogout() {
     await logout();
@@ -112,8 +115,8 @@ export function SuperAdminLayout() {
   }
 
   return (
-    <div className={`min-h-dvh ${shell}`}>
-      <div className="flex min-h-dvh">
+    <div className={`admin-shell ${shell}`}>
+      <div className="flex w-full min-h-dvh flex-1 flex-col lg:flex-row">
         {/* Desktop sidebar */}
         <aside
           className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r backdrop-blur-xl transition-[width] duration-200 lg:flex ${sidebarWidth} ${sidebar}`}
@@ -148,8 +151,8 @@ export function SuperAdminLayout() {
           </button>
         </aside>
 
-        <div className={`flex min-w-0 flex-1 flex-col ${mainPad}`}>
-          <header className={`sticky top-0 z-30 border-b backdrop-blur-xl ${sidebar}`}>
+        <div className={`flex min-w-0 flex-1 flex-col overflow-visible ${mainPad}`}>
+          <header className={`sticky top-0 z-30 border-b backdrop-blur-xl pt-safe ${sidebar}`}>
             <div className="flex items-center gap-2 px-3 py-3 sm:gap-4 sm:px-4 lg:px-8">
               <button
                 type="button"
@@ -211,7 +214,7 @@ export function SuperAdminLayout() {
             ) : null}
           </header>
 
-          <main className="admin-main flex-1 p-3 sm:p-4 lg:p-8">
+          <main className="admin-main p-3 sm:p-4 lg:p-8">
             <Outlet />
           </main>
         </div>
