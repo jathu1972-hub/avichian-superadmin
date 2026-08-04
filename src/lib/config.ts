@@ -18,24 +18,6 @@ export function normalizeApiOrigin(raw: string): string {
 let runtimeApiOrigin = '';
 let configLoaded = false;
 
-export async function loadRuntimeConfig(): Promise<void> {
-  if (configLoaded) return;
-  configLoaded = true;
-  try {
-    const base = import.meta.env.BASE_URL || '/';
-    const res = await fetch(`${base}config.json?v=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return;
-    const json = (await res.json()) as { apiUrl?: string; VITE_API_URL?: string };
-    const raw = json.apiUrl || json.VITE_API_URL;
-    if (raw?.trim()) {
-      runtimeApiOrigin = normalizeApiOrigin(raw);
-      console.info('[AVICHIAN] API origin from config.json:', runtimeApiOrigin);
-    }
-  } catch {
-    /* optional */
-  }
-}
-
 function isHostedStaticFrontend(): boolean {
   if (typeof window === 'undefined') return Boolean(import.meta.env.PROD);
   const h = window.location.hostname;
@@ -45,6 +27,32 @@ function isHostedStaticFrontend(): boolean {
     h.includes('vercel.app') ||
     h.includes('pages.dev')
   );
+}
+
+export async function loadRuntimeConfig(): Promise<void> {
+  if (configLoaded) return;
+  configLoaded = true;
+
+  // Local Vite: always proxy /api → :4000 (ignore stale tunnel URLs in config.json)
+  if (import.meta.env.DEV && !isHostedStaticFrontend()) {
+    console.info('[AVICHIAN] Dev mode: using Vite /api proxy (localhost:4000)');
+    return;
+  }
+
+  try {
+    const base = import.meta.env.BASE_URL || '/';
+    const res = await fetch(`${base}config.json?v=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return;
+    const text = (await res.text()).replace(/^\uFEFF/, '');
+    const json = JSON.parse(text) as { apiUrl?: string; VITE_API_URL?: string };
+    const raw = json.apiUrl || json.VITE_API_URL;
+    if (raw?.trim()) {
+      runtimeApiOrigin = normalizeApiOrigin(raw);
+      console.info('[AVICHIAN] API origin from config.json:', runtimeApiOrigin);
+    }
+  } catch {
+    /* optional */
+  }
 }
 
 export function getApiOrigin(): string {
