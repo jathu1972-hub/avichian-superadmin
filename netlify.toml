@@ -1,4 +1,11 @@
-﻿# Super Admin (standalone repo)
+# AVICHIAN Super Admin — permanent Netlify SPA
+# Site: connect GitHub repo jathu1972-hub/avichian-superadmin
+# Permanent URL (after deploy): https://avichian-superadmin.netlify.app
+# Custom domain (optional):    https://admin.avichian.com
+#
+# REQUIRED env:
+#   VITE_API_URL = https://YOUR-BACKEND-HOST
+
 [build]
   command = "npm ci && npm run build"
   publish = "dist"
