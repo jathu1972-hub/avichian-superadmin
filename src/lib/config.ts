@@ -41,7 +41,15 @@ export function getApiOrigin(): string {
 
 export function getApiBase(): string {
   const origin = getApiOrigin();
-  return origin ? `${origin}/api` : '/api';
+  if (origin) return `${origin}/api`;
+  if (import.meta.env.PROD) {
+    throw new Error(
+      'VITE_API_URL is not configured in this production build. ' +
+        'Set the GitHub Actions variable (or Netlify env) VITE_API_URL to your Express backend origin, then redeploy. ' +
+        'Relative /api only works in local Vite dev.',
+    );
+  }
+  return '/api';
 }
 
 export function isCrossOriginApi(): boolean {
