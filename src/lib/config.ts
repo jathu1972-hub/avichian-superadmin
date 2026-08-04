@@ -42,7 +42,10 @@ export async function loadRuntimeConfig(): Promise<void> {
   try {
     const base = import.meta.env.BASE_URL || '/';
     const res = await fetch(`${base}config.json?v=${Date.now()}`, { cache: 'no-store' });
-    if (!res.ok) return;
+    if (!res.ok) {
+      console.error('[AVICHIAN] config.json missing or HTTP', res.status, 'at', `${base}config.json`);
+      return;
+    }
     const text = (await res.text()).replace(/^\uFEFF/, '');
     const json = JSON.parse(text) as { apiUrl?: string; VITE_API_URL?: string };
     const raw = json.apiUrl || json.VITE_API_URL;
@@ -50,15 +53,17 @@ export async function loadRuntimeConfig(): Promise<void> {
       runtimeApiOrigin = normalizeApiOrigin(raw);
       console.info('[AVICHIAN] API origin from config.json:', runtimeApiOrigin);
     }
-  } catch {
-    /* optional */
+  } catch (err) {
+    console.error('[AVICHIAN] Failed to load config.json', err);
   }
 }
 
 export function getApiOrigin(): string {
   if (runtimeApiOrigin) return runtimeApiOrigin;
   const raw = import.meta.env.VITE_API_URL as string | undefined;
-  if (raw?.trim()) return normalizeApiOrigin(raw);
+  if (raw?.trim()) {
+    return normalizeApiOrigin(raw);
+  }
   if (import.meta.env.PROD || isHostedStaticFrontend()) {
     console.error('[AVICHIAN] No API URL — set public/config.json { "apiUrl": "https://YOUR-API" }');
   }
