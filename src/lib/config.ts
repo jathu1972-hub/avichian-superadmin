@@ -1,10 +1,21 @@
 /**
  * Super Admin API configuration — same rules as student app.
- * Runtime: public/config.json { "apiUrl": "https://your-api" }
+ *
+ * Resolution: config.json → VITE_API_URL → /api (dev proxy only).
+ * Production never uses localhost / 127.0.0.1.
  */
 
 function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, '');
+}
+
+export function isLoopbackUrl(url: string): boolean {
+  try {
+    const u = new URL(url.includes('://') ? url : `https://${url}`);
+    return u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1';
+  } catch {
+    return /localhost|127\.0\.0\.1/i.test(url);
+  }
 }
 
 export function normalizeApiOrigin(raw: string): string {
@@ -14,9 +25,6 @@ export function normalizeApiOrigin(raw: string): string {
   }
   return url;
 }
-
-let runtimeApiOrigin = '';
-let configLoaded = false;
 
 function isHostedStaticFrontend(): boolean {
   if (typeof window === 'undefined') return Boolean(import.meta.env.PROD);
@@ -29,13 +37,25 @@ function isHostedStaticFrontend(): boolean {
   );
 }
 
+export function isProductionFrontend(): boolean {
+  return Boolean(import.meta.env.PROD) || isHostedStaticFrontend();
+}
+
+let runtimeApiOrigin = '';
+let configLoaded = false;
+
 export async function loadRuntimeConfig(): Promise<void> {
   if (configLoaded) return;
   configLoaded = true;
 
-  // Local Vite: always proxy /api → :4000 (ignore stale tunnel URLs in config.json)
   if (import.meta.env.DEV && !isHostedStaticFrontend()) {
-    console.info('[AVICHIAN] Dev mode: using Vite /api proxy (localhost:4000)');
+    const envUrl = (import.meta.env.VITE_API_URL as string | undefined)?.trim();
+    if (envUrl) {
+      runtimeApiOrigin = normalizeApiOrigin(envUrl);
+      console.info('[AVICHIAN] Dev API from VITE_API_URL:', runtimeApiOrigin);
+    } else {
+      console.info('[AVICHIAN] Dev mode: using Vite /api proxy');
+    }
     return;
   }
 
@@ -43,29 +63,44 @@ export async function loadRuntimeConfig(): Promise<void> {
     const base = import.meta.env.BASE_URL || '/';
     const res = await fetch(`${base}config.json?v=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) {
-      console.error('[AVICHIAN] config.json missing or HTTP', res.status, 'at', `${base}config.json`);
+      console.warn('[AVICHIAN] config.json not found (HTTP', res.status, ')');
       return;
     }
     const text = (await res.text()).replace(/^\uFEFF/, '');
     const json = JSON.parse(text) as { apiUrl?: string; VITE_API_URL?: string };
     const raw = json.apiUrl || json.VITE_API_URL;
     if (raw?.trim()) {
-      runtimeApiOrigin = normalizeApiOrigin(raw);
+      const origin = normalizeApiOrigin(raw);
+      if (isProductionFrontend() && isLoopbackUrl(origin)) {
+        console.error('[AVICHIAN] config.json apiUrl is localhost — not usable on public hosts');
+        return;
+      }
+      runtimeApiOrigin = origin;
       console.info('[AVICHIAN] API origin from config.json:', runtimeApiOrigin);
     }
   } catch (err) {
-    console.error('[AVICHIAN] Failed to load config.json', err);
+    console.warn('[AVICHIAN] config.json load failed', err);
   }
 }
 
 export function getApiOrigin(): string {
-  if (runtimeApiOrigin) return runtimeApiOrigin;
+  if (runtimeApiOrigin) {
+    if (isProductionFrontend() && isLoopbackUrl(runtimeApiOrigin)) return '';
+    return runtimeApiOrigin;
+  }
+
   const raw = import.meta.env.VITE_API_URL as string | undefined;
   if (raw?.trim()) {
-    return normalizeApiOrigin(raw);
+    const origin = normalizeApiOrigin(raw);
+    if (isProductionFrontend() && isLoopbackUrl(origin)) {
+      console.error('[AVICHIAN] VITE_API_URL is localhost in production — refused');
+      return '';
+    }
+    return origin;
   }
-  if (import.meta.env.PROD || isHostedStaticFrontend()) {
-    console.error('[AVICHIAN] No API URL — set public/config.json { "apiUrl": "https://YOUR-API" }');
+
+  if (isProductionFrontend()) {
+    console.error('[AVICHIAN] No API URL — set public/config.json or VITE_API_URL');
   }
   return '';
 }
@@ -73,10 +108,9 @@ export function getApiOrigin(): string {
 export function getApiBase(): string {
   const origin = getApiOrigin();
   if (origin) return `${origin}/api`;
-  if (import.meta.env.PROD || isHostedStaticFrontend()) {
+  if (isProductionFrontend()) {
     throw new Error(
-      'API URL is not configured (relative /api returns HTML on static hosts). ' +
-        'Set config.json apiUrl or VITE_API_URL to your Express backend, then redeploy.',
+      'Unable to connect to the server. The application is not configured with a production API URL.',
     );
   }
   return '/api';
@@ -100,3 +134,6 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
   if (url.startsWith('/') && origin) return `${origin}${url}`;
   return url;
 }
+
+export const API_UNREACHABLE_MESSAGE =
+  'Unable to connect to the server. Please try again later.';

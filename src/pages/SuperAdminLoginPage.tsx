@@ -63,10 +63,8 @@ export function SuperAdminLoginPage() {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Authentication failed';
       // Friendlier hint when GitHub Pages cannot reach the PC tunnel
-      if (/Failed to fetch|Network error|Cannot reach the API/i.test(msg)) {
-        setError(
-          'Cannot reach the API. Ensure the backend is running on this PC (port 4000) and the Cloudflare tunnel is up, then hard-refresh. Or use local login: http://localhost:5174/#/login',
-        );
+      if (/Failed to fetch|Network error|Cannot reach|Unable to connect/i.test(msg)) {
+        setError('Unable to connect to the server. Please try again later.');
       } else {
         setError(msg);
       }

@@ -1,21 +1,15 @@
-# Permanent public URL after first successful run:
-# https://jathu1972-hub.github.io/avichian-superadmin/
 name: Deploy GitHub Pages
-
 on:
   push:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
   pages: write
   id-token: write
-
 concurrency:
   group: pages-admin
   cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,22 +17,32 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
           cache: npm
       - run: npm ci
       - name: Build for GitHub Pages
         env:
-          GITHUB_PAGES: 'true'
+          GITHUB_PAGES: "true"
           VITE_BASE: /avichian-superadmin/
-          # API URL comes from public/config.json at runtime (not build-time).
-          # Do not set VITE_API_URL here — stale Cloudflare quick tunnels break login.
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
         run: npm run build
+      - name: Ensure production config.json (never localhost)
+        run: |
+          if [ -n "${{ vars.VITE_API_URL }}" ]; then
+            ORIGIN=$(echo "${{ vars.VITE_API_URL }}" | sed -E 's#/api/?$##')
+            printf '{\n  "apiUrl": "%s"\n}\n' "$ORIGIN" > dist/config.json
+          fi
+          if grep -qiE 'localhost|127\.0\.0\.1' dist/config.json 2>/dev/null; then
+            echo "ERROR: production config.json must not contain localhost" >&2
+            cat dist/config.json
+            exit 1
+          fi
+          cat dist/config.json
       - name: SPA fallback
         run: cp dist/index.html dist/404.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-
   deploy:
     needs: build
     runs-on: ubuntu-latest
